@@ -193,9 +193,9 @@ class Conv2dNode : public NodeT<Conv2dNode, 3, 1> {
   Node* bias() const { return GetInputNode(2); }
 
   webnn::mojom::blink::Conv2d::Kind kind;
-  webnn::mojom::blink::Padding2d padding;
-  webnn::mojom::blink::Size2d strides;
-  webnn::mojom::blink::Size2d dilations;
+  webnn::mojom::blink::Padding2dPtr padding;
+  webnn::mojom::blink::Size2dPtr strides;
+  webnn::mojom::blink::Size2dPtr dilations;
   uint32_t groups;
 
   void Trace(Visitor* visitor) const override { Node::Trace(visitor); }

@@ -63,8 +63,10 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
       auto* node = MakeGarbageCollected<ClampNode>();
       const auto* options =
           static_cast<const blink::MLClampOptions*>(op->Options());
-      node->min_value = options->minValue();
-      node->max_value = options->maxValue();
+      node->min_value =
+          options->getMinValueOr(-std::numeric_limits<float>::infinity());
+      node->max_value =
+          options->getMaxValueOr(+std::numeric_limits<float>::infinity());
       ret = node;
       break;
     }
@@ -83,40 +85,43 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
       if (node->kind == webnn::mojom::Conv2d_Kind::kDirect) {
         const auto* options =
             static_cast<const blink::MLConv2dOptions*>(op->Options());
-        CHECK_EQ(options->padding().size(), 4u);
-        node->padding.beginning->height = options->padding()[0];
-        node->padding.beginning->width = options->padding()[2];
-        node->padding.ending->height = options->padding()[1];
-        node->padding.ending->width = options->padding()[3];
 
-        CHECK_EQ(options->strides().size(), 2u);
-        node->strides.height = options->strides()[0];
-        node->strides.width = options->strides()[1];
+        auto strides = options->getStridesOr({1, 1});
+        CHECK_EQ(strides.size(), 2u);
+        node->strides =
+            webnn::mojom::blink::Size2d::New(strides[0], strides[1]);
 
-        CHECK_EQ(options->dilations().size(), 2u);
-        node->dilations.height = options->dilations()[0];
-        node->dilations.width = options->dilations()[1];
-
+        auto dilations = options->getDilationsOr({1, 1});
+        CHECK_EQ(dilations.size(), 2u);
+        node->dilations =
+            webnn::mojom::blink::Size2d::New(dilations[0], dilations[1]);
         node->groups = options->groups();
+
+        auto ml_padding = options->getPaddingOr({0, 0, 0, 0});
+        CHECK_EQ(ml_padding.size(), 4u);
+        node->padding = webnn::mojom::blink::Padding2d::New(
+            webnn::mojom::blink::Size2d::New(ml_padding[0], ml_padding[2]),
+            webnn::mojom::blink::Size2d::New(ml_padding[1], ml_padding[3]));
       } else {
         DCHECK_EQ(node->kind, webnn::mojom::Conv2d_Kind::kTransposed);
         const auto* options =
             static_cast<const blink::MLConvTranspose2dOptions*>(op->Options());
-        CHECK_EQ(options->padding().size(), 4u);
-        node->padding.beginning->height = options->padding()[0];
-        node->padding.beginning->width = options->padding()[2];
-        node->padding.ending->height = options->padding()[1];
-        node->padding.ending->width = options->padding()[3];
+        auto strides = options->getStridesOr({1, 1});
+        CHECK_EQ(strides.size(), 2u);
+        node->strides =
+            webnn::mojom::blink::Size2d::New(strides[0], strides[1]);
 
-        CHECK_EQ(options->strides().size(), 2u);
-        node->strides.height = options->strides()[0];
-        node->strides.width = options->strides()[1];
-
-        CHECK_EQ(options->dilations().size(), 2u);
-        node->dilations.height = options->dilations()[0];
-        node->dilations.width = options->dilations()[1];
-
+        auto dilations = options->getDilationsOr({1, 1});
+        CHECK_EQ(dilations.size(), 2u);
+        node->dilations =
+            webnn::mojom::blink::Size2d::New(dilations[0], dilations[1]);
         node->groups = options->groups();
+
+        auto ml_padding = options->getPaddingOr({0, 0, 0, 0});
+        CHECK_EQ(ml_padding.size(), 4u);
+        node->padding = webnn::mojom::blink::Padding2d::New(
+            webnn::mojom::blink::Size2d::New(ml_padding[0], ml_padding[2]),
+            webnn::mojom::blink::Size2d::New(ml_padding[1], ml_padding[3]));
       }
       ret = node;
       break;
@@ -200,6 +205,8 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
     }
     case webnn::mojom::blink::Operation::Tag::kGru: {
       auto* node = MakeGarbageCollected<GruNode>();
+      const auto output_num = op->Outputs().size();
+      node->SetOutputPortNum(output_num);
       const auto* ml_gru = static_cast<const MLGruOperator*>(op);
       const auto* options =
           static_cast<const blink::MLGruOptions*>(op->Options());
@@ -363,6 +370,8 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
     }
     case webnn::mojom::blink::Operation::Tag::kLstm: {
       auto* node = MakeGarbageCollected<LstmNode>();
+      const auto output_num = op->Outputs().size();
+      node->SetOutputPortNum(output_num);
       const auto* ml_lstm = static_cast<const MLLstmOperator*>(op);
       const auto* options =
           static_cast<const blink::MLLstmOptions*>(op->Options());
@@ -421,6 +430,8 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
     }
     case webnn::mojom::blink::Operation::Tag::kLstmCell: {
       auto* node = MakeGarbageCollected<LstmCellNode>();
+      const auto output_num = op->Outputs().size();
+      node->SetOutputPortNum(output_num);
       const auto* ml_lstmcell = static_cast<const MLLstmCellOperator*>(op);
       const auto* options =
           static_cast<const blink::MLLstmCellOptions*>(op->Options());
@@ -619,6 +630,8 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
     }
     case webnn::mojom::blink::Operation::Tag::kSplit: {
       auto* node = MakeGarbageCollected<SplitNode>();
+      const auto output_num = op->Outputs().size();
+      node->SetOutputPortNum(output_num);
       const auto* options =
           static_cast<const blink::MLSplitOptions*>(op->Options());
       CHECK(options);
