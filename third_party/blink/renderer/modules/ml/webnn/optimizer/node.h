@@ -805,6 +805,7 @@ class Resample2dNode : public NodeT<Resample2dNode, 1, 1> {
   Node* input() const { return GetInputNode(0); }
 
   webnn::mojom::blink::Resample2d::InterpolationMode mode;
+  Vector<float> scales;
   Vector<uint32_t> axes;
 
   void Trace(Visitor* visitor) const override { Node::Trace(visitor); }

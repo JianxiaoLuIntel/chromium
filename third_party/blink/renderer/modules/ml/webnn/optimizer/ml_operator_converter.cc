@@ -526,12 +526,7 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
       ret = node;
       break;
     }
-    case webnn::mojom::blink::Operation::Tag::kReshape: {
-      auto* node = MakeGarbageCollected<ReshapeNode>();
-      ret = node;
-      break;
-    }
-    case webnn::mojom::blink::Operation::Tag::kReduce:{
+    case webnn::mojom::blink::Operation::Tag::kReduce: {
       auto* node = MakeGarbageCollected<ReduceNode>();
       const auto* options =
           static_cast<const blink::MLReduceOptions*>(op->Options());
@@ -540,12 +535,12 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
       ret = node;
       break;
     }
-    case webnn::mojom::blink::Operation::Tag::kRelu:{
+    case webnn::mojom::blink::Operation::Tag::kRelu: {
       auto* node = MakeGarbageCollected<ReluNode>();
       ret = node;
       break;
     }
-    case webnn::mojom::blink::Operation::Tag::kResample2d:{
+    case webnn::mojom::blink::Operation::Tag::kResample2d: {
       auto* node = MakeGarbageCollected<Resample2dNode>();
       const auto* options =
           static_cast<const blink::MLResample2dOptions*>(op->Options());
@@ -555,16 +550,70 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
               kNearestNeighbor;
           break;
         case blink::V8MLInterpolationMode::Enum::kLinear:
-          node->mode = webnn::mojom::blink::Resample2d::InterpolationMode::kLinear;
+          node->mode =
+              webnn::mojom::blink::Resample2d::InterpolationMode::kLinear;
           break;
       }
+      node->scales = options->scales();
+      node->axes = options->axes();
+
       ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kReshape: {
+      auto* node = MakeGarbageCollected<ReshapeNode>();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kReverse: {
+      auto* node = MakeGarbageCollected<ReverseNode>();
+      const auto* ml_reverse = static_cast<const MLReverseOperator*>(op);
+      node->axes = ml_reverse->Axes();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kScatterElements: {
+      auto* node = MakeGarbageCollected<ScatterElementsNode>();
+      const auto* options =
+          static_cast<const blink::MLScatterOptions*>(op->Options());
+      node->axis = options->axis();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kScatterNd: {
+      auto* node = MakeGarbageCollected<ScatterNDNode>();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kSigmoid: {
+      auto* node = MakeGarbageCollected<SigmoidNode>();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kSlice: {
+      auto* node = MakeGarbageCollected<SliceNode>();
+      const auto* ml_slice = static_cast<const MLSliceOperator*>(op);
+      node->ranges.reserve(ml_slice->Starts().size());
+      for (wtf_size_t i = 0; i < ml_slice->Starts().size(); i++) {
+        node->ranges.emplace_back(ml_slice->Starts()[i], ml_slice->Sizes()[i],
+                                  ml_slice->Strides()[i]);
+      }
       break;
     }
     case webnn::mojom::blink::Operation::Tag::kSoftmax: {
       const auto* ml_softmax = static_cast<const MLSoftmaxOperator*>(op);
       auto* node = MakeGarbageCollected<SoftmaxNode>();
       node->axis = ml_softmax->Axis();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kSoftplus: {
+      auto* node = MakeGarbageCollected<SoftplusNode>();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kSoftsign: {
+      auto* node = MakeGarbageCollected<SoftsignNode>();
       ret = node;
       break;
     }
@@ -579,6 +628,18 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
       ret = node;
       break;
     }
+    case webnn::mojom::blink::Operation::Tag::kTanh: {
+      auto* node = MakeGarbageCollected<TanhNode>();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kTile: {
+      auto* node = MakeGarbageCollected<TileNode>();
+      const auto* ml_tile = static_cast<const MLTileOperator*>(op);
+      node->repetitions = ml_tile->Repetitions();
+      ret = node;
+      break;
+    }
     case webnn::mojom::blink::Operation::Tag::kTranspose: {
       auto* node = MakeGarbageCollected<TransposeNode>();
       auto* options = static_cast<const MLTransposeOptions*>(op->Options());
@@ -587,6 +648,20 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
       node->permutation =
           options->getPermutationOr(CreateDefaultPermutation(input_rank));
       CHECK_EQ(node->permutation.size(), input_rank);
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kTriangular: {
+      auto* node = MakeGarbageCollected<TriangularNode>();
+      const auto* options =
+          static_cast<const blink::MLTriangularOptions*>(op->Options());
+      node->upper = options->upper();
+      node->diagonal = options->diagonal();
+      ret = node;
+      break;
+    }
+    case webnn::mojom::blink::Operation::Tag::kWhere: {
+      auto* node = MakeGarbageCollected<WhereNode>();
       ret = node;
       break;
     }

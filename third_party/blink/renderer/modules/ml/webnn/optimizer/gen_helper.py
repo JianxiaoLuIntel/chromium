@@ -44,7 +44,7 @@ enum_line_pattern = r"^enum\s+(\w+)\s*\{"
 
 
 def extract_variable_info(line):
-    pattern = r"(\S+\??(?:<[^>]+>)?)\s+(\w+)\s*(?:=\s*([^\s;]+))?\s*;"
+    pattern = r"(\S+(?:<[^>]+>)?\??)\s+(\w+)\s*(?:=\s*([^\s;]+))?\s*;"
 
     match = re.match(pattern, line)
 
