@@ -32,6 +32,10 @@ blink_modules_sources("ml") {
     "webnn/ml_operator.h",
     "webnn/ml_tensor.cc",
     "webnn/ml_tensor.h",
+    "webnn/optimizer/edge.cc",
+    "webnn/optimizer/graph.cc",
+    "webnn/optimizer/node.cc",
+    "webnn/optimizer/pipeline.cc",
   ]
 
   deps = [
