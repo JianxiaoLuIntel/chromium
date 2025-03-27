@@ -11,7 +11,6 @@ namespace blink::webnn_optimizer {
 Graph* Graph::BuildGraphFromML(
     const MLNamedOperands& named_outputs,
     const webnn::ContextProperties& context_properties) {
-  HeapVector<Node*> outputs;
   HeapHashMap<Member<const MLOperand>, std::pair<Node*, wtf_size_t>>
       output_operand_to_node_and_index;
   HeapHashMap<Member<const MLOperand>, Node*> input_operand_to_node;
@@ -19,6 +18,8 @@ Graph* Graph::BuildGraphFromML(
 
   HeapVector<Member<const MLOperator>>* topologically_sorted_operators =
       GetOperatorsInTopologicalOrder(named_outputs);
+
+  Graph* graph = MakeGarbageCollected<Graph>();
 
   for (const auto& current_operator : *topologically_sorted_operators) {
     Node* current_node = ConvertMLOperatorToNode(current_operator);
@@ -41,6 +42,8 @@ Graph* Graph::BuildGraphFromML(
             input_node = MakeGarbageCollected<InputNode>();
             input_node->SetOperands({input_operand});
             input_operand_to_node.insert(input_operand, input_node);
+
+            graph->inputs_.push_back(input_node);
           }
           Edge::Connect(input_node, 0, current_node, i);
           break;
@@ -72,11 +75,58 @@ Graph* Graph::BuildGraphFromML(
     }
   }
 
-  return nullptr;
+  for (auto [name, output] : named_outputs) {
+    auto [node, idx] = output_operand_to_node_and_index.at(output.Get());
+    graph->outputs_.push_back(node);
+  }
+
+  return graph;
 }
 
 void Graph::Trace(Visitor* visitor) const {
   visitor->Trace(inputs_);
   visitor->Trace(outputs_);
 }
+
+void Graph::Print() const {
+  auto sorted = TopologicalSort();
+  int id = 0;
+  for (auto node : sorted) {
+    node->SetId(++id);
+    node->Print();
+  }
+}
+
+HeapVector<Node*> Graph::TopologicalSort() const {
+  HeapVector<Node*> stack;
+  for (auto output : outputs_) {
+    stack.push_back(output);
+  }
+  HeapHashSet<Member<Node>> visited;
+  HeapVector<Node*> sorted;
+
+  while (!stack.empty()) {
+    Node* node = stack.back();
+    if (visited.Contains(node)) {
+      stack.pop_back();
+      continue;
+    }
+
+    bool all_inputs_visited = true;
+    for (auto input : node->GetInputNodes()) {
+      if (input && !visited.Contains(input)) {
+        stack.push_back(input);
+        all_inputs_visited = false;
+      }
+    }
+
+    if (all_inputs_visited) {
+      sorted.push_back(node);
+      visited.insert(node);
+      stack.pop_back();
+    }
+  }
+  return sorted;
+}
+
 }  // namespace blink::webnn_optimizer

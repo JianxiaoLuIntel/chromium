@@ -34,6 +34,7 @@ blink_modules_sources("ml") {
     "webnn/ml_tensor.h",
     "webnn/optimizer/edge.cc",
     "webnn/optimizer/graph.cc",
+    "webnn/optimizer/ml_operator_converter.cc",
     "webnn/optimizer/node.cc",
     "webnn/optimizer/pipeline.cc",
   ]

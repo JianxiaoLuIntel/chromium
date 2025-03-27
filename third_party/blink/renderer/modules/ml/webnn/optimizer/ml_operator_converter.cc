@@ -194,7 +194,7 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
     }
     case webnn::mojom::blink::Operation::Tag::kGemm: {
       auto* node = MakeGarbageCollected<GemmNode>();
-      const auto options =
+      const auto* options =
           static_cast<const blink::MLGemmOptions*>(op->Options());
       node->alpha = options->alpha();
       node->beta = options->beta();

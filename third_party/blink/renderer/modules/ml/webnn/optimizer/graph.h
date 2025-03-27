@@ -6,13 +6,17 @@
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 namespace blink::webnn_optimizer {
 
-class Graph : GarbageCollected<Graph> {
+class Graph : public GarbageCollected<Graph> {
  public:
   static Graph* BuildGraphFromML(
       const MLNamedOperands& named_outputs,
       const webnn::ContextProperties& context_properties);
 
   void Trace(Visitor* visitor) const;
+
+  void Print() const;
+
+  HeapVector<Node*> TopologicalSort() const;
 
  private:
   HeapVector<Member<Node>> inputs_;

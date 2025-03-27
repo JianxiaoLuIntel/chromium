@@ -3322,6 +3322,15 @@ ScriptPromise<MLGraph> MLGraphBuilder::build(
   }
 
   scoped_trace.AddStep("BuildWebNNGraphInfo");
+
+  auto* graph = webnn_optimizer::Graph::BuildGraphFromML(named_outputs,
+                                           ml_context_->GetProperties());
+
+  CHECK(graph);
+
+  graph->Print();
+
+  scoped_trace.AddStep("BuildWebNNGraphInfo");
   auto graph_info =
       BuildWebNNGraphInfo(named_outputs, ml_context_->GetProperties());
   if (!graph_info.has_value()) {

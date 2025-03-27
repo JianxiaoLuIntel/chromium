@@ -1,6 +1,8 @@
 #ifndef THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_OPTIMIZER_OPSET_H_
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_OPTIMIZER_OPSET_H_
 
+#include <string>
+
 namespace blink::webnn_optimizer {
 
 #define WEBNN_OPTIMIZER_SPEC_OPERATION_LIST(V) \
@@ -65,6 +67,23 @@ enum class OpKind {
   kConstant,
   kInput,
 };
+
+inline std::string OpKind2String(OpKind kind) {
+  switch (kind) {
+    case OpKind::kNone:
+      return "None";
+    case OpKind::kConstant:
+      return "Constant";
+    case OpKind::kInput:
+      return "Input";
+
+#define CASE(op)      \
+  case OpKind::k##op: \
+    return #op;
+      WEBNN_OPTIMIZER_SPEC_OPERATION_LIST(CASE)
+#undef CASE
+  }
+}
 
 }  // namespace blink::webnn_optimizer
 

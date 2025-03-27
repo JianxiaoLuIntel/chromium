@@ -19,19 +19,32 @@ class Node : public GarbageCollected<Node> {
 
   Node* GetInputNode(int index) const { return inputs_[index]->FromNode(); }
 
+  HeapVector<Node*> GetInputNodes() const {
+    HeapVector<Node*> input_nodes;
+    for (const auto& input : inputs_) {
+      input_nodes.push_back(input->FromNode());
+    }
+    return input_nodes;
+  }
+
   void SetLabel(const String& label) { label_ = label; }
   void SetOperands(const HeapVector<Member<MLOperand>>& operands) {
     operands_ = operands;
   }
+  void SetId(int id) { id_ = id; }
+
+  void Print() const;
 
   virtual ~Node() = default;
 
  protected:
   Node() = default;
+
   HeapVector<Member<Edge>> inputs_;
   HeapVector<HeapVector<Member<Edge>>> output_ports_;
   HeapVector<Member<MLOperand>> operands_;
   String label_;
+  int id_ = -1;
 
   friend class Edge;
 };
@@ -112,18 +125,6 @@ class ConstantNode : public NodeT<ConstantNode, 0, 1> {
 
   OpKind op_kind() const override { return OpKind::kConstant; }
 };
-
-// below is auto gen code
-
-/*['ArgMinMax', 'BatchNormalization', 'Clamp', 'Concat', 'Conv2d',
- * 'CumulativeSum', 'DequantizeLinear', 'ElementWiseBinary', 'Elu',
- * 'ElementWiseUnary', 'Expand', 'Gather', 'GatherElements', 'GatherND', 'Gelu',
- * 'Gemm', 'Gru', 'GruCell', 'HardSigmoid', 'HardSwish', 'LayerNormalization',
- * 'InstanceNormalization', 'LeakyRelu', 'Linear', 'Lstm', 'LstmCell', 'Matmul',
- * 'Pad', 'Pool2d', 'Prelu', 'QuantizeLinear', 'Reduce', 'Relu', 'Resample2d',
- * 'Reshape', 'Reverse', 'ScatterElements', 'ScatterND', 'Sigmoid', 'Slice',
- * 'Softmax', 'Softplus', 'Softsign', 'Split', 'Tanh', 'Tile', 'Transpose',
- * 'Triangular', 'Where']*/
 
 class ArgMinMaxNode : public NodeT<ArgMinMaxNode, 1, 1> {
  public:
