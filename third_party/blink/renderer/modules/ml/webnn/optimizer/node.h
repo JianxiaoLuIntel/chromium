@@ -2,6 +2,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_MODULES_ML_WEBNN_ML_OPTIMIZER_OPERATION_H_
 
 #include "services/webnn/public/mojom/webnn_graph.mojom-blink.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_ml_operator_options.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/optimizer/edge.h"
 #include "third_party/blink/renderer/modules/ml/webnn/optimizer/opset.h"
@@ -27,9 +28,23 @@ class Node : public GarbageCollected<Node> {
     return input_nodes;
   }
 
+  HeapVector<Member<Edge>>& GetInputEdges() { return inputs_; }
+  HeapVector<HeapVector<Member<Edge>>>& GetOutputPorts() { return output_ports_; }
+
   void SetLabel(const String& label) { label_ = label; }
-  void SetOperands(const HeapVector<Member<MLOperand>>& operands) {
-    operands_ = operands;
+  String GetLabel() const { return label_; }
+  void SetOperandDescriptors(
+      const Vector<webnn::OperandDescriptor>& descriptors) {
+    output_descriptors_ = descriptors;
+  }
+  Vector<webnn::OperandDescriptor> GetOperandDescriptors() const {
+    return output_descriptors_;
+  }
+  void SetMLOperatorOptions(const Member<MLOperatorOptions>& options) {
+    ml_operator_options_ = options;
+  }
+  Member<MLOperatorOptions> GetMLOperatorOptions() const {
+    return ml_operator_options_;
   }
   void SetId(int id) { id_ = id; }
 
@@ -42,7 +57,8 @@ class Node : public GarbageCollected<Node> {
 
   HeapVector<Member<Edge>> inputs_;
   HeapVector<HeapVector<Member<Edge>>> output_ports_;
-  HeapVector<Member<MLOperand>> operands_;
+  Vector<webnn::OperandDescriptor> output_descriptors_;
+  Member<MLOperatorOptions> ml_operator_options_;
   String label_;
   int id_ = -1;
 

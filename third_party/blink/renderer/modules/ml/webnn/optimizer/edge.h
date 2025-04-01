@@ -14,6 +14,11 @@ class Edge : public GarbageCollected<Edge> {
                       Node* to_node,
                       size_t to_index);
 
+  static void Disconnect(Node* from_node,
+                         size_t from_index,
+                         Node* to_node,
+                         size_t to_index);
+
   Edge(Node* from_node, size_t from_index, Node* to_node, size_t to_index);
 
   void Trace(Visitor* visitor) const;

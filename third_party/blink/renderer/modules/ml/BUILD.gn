@@ -36,6 +36,7 @@ blink_modules_sources("ml") {
     "webnn/optimizer/graph.cc",
     "webnn/optimizer/ml_operator_converter.cc",
     "webnn/optimizer/node.cc",
+    "webnn/optimizer/options_resolve_transformer.cc",
     "webnn/optimizer/pipeline.cc",
   ]
 

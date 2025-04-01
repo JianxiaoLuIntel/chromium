@@ -12,15 +12,24 @@ class Graph : public GarbageCollected<Graph> {
       const MLNamedOperands& named_outputs,
       const webnn::ContextProperties& context_properties);
 
+  explicit Graph(const webnn::ContextProperties* context_properties)
+      : context_properties_(context_properties) {}
+
   void Trace(Visitor* visitor) const;
 
   void Print() const;
 
   HeapVector<Node*> TopologicalSort() const;
 
+  base::raw_ptr<const webnn::ContextProperties> GetContextProperties() const {
+    return context_properties_;
+  }
+
  private:
   HeapVector<Member<Node>> inputs_;
   HeapVector<Member<Node>> outputs_;
+
+  const base::raw_ptr<const webnn::ContextProperties> context_properties_;
 };
 
 }  // namespace blink::webnn_optimizer

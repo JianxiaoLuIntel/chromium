@@ -17,7 +17,7 @@ void Edge::Connect(Node* from_node,
 
 #ifdef _DEBUG
   // CHECK the edge is not connected before.
-  for (auto& output : from_node->output_ports_[from_index]) {
+  for (auto output : from_node->output_ports_[from_index]) {
     DCHECK(*output != *edge);
   }
 
@@ -28,6 +28,24 @@ void Edge::Connect(Node* from_node,
   DCHECK_GT(to_node->inputs_.size(), to_index);
   DCHECK(to_node->inputs_[to_index] == nullptr);
   to_node->inputs_[to_index] = edge;
+}
+
+// static
+void Edge::Disconnect(Node* from_node,
+                      size_t from_index,
+                      Node* to_node,
+                      size_t to_index) {
+  DCHECK_GT(from_node->output_ports_.size(), from_index);
+  DCHECK_GT(to_node->inputs_.size(), to_index);
+
+  auto edge = to_node->GetInputEdges()[to_index];
+  to_node->GetInputEdges()[to_index] = nullptr;
+
+  auto port = from_node->output_ports_[from_index];
+  auto idx = port.Find(edge);
+  DCHECK(idx != port.size());
+  std::swap(port[idx], port.back());
+  port.pop_back();
 }
 
 void Edge::Trace(Visitor* visitor) const {

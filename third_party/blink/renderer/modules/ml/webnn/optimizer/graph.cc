@@ -19,7 +19,7 @@ Graph* Graph::BuildGraphFromML(
   HeapVector<Member<const MLOperator>>* topologically_sorted_operators =
       GetOperatorsInTopologicalOrder(named_outputs);
 
-  Graph* graph = MakeGarbageCollected<Graph>();
+  Graph* graph = MakeGarbageCollected<Graph>(&context_properties);
 
   for (const auto& current_operator : *topologically_sorted_operators) {
     Node* current_node = ConvertMLOperatorToNode(current_operator);
@@ -40,7 +40,7 @@ Graph* Graph::BuildGraphFromML(
             input_node = input_operand_to_node.at(input_operand);
           } else {
             input_node = MakeGarbageCollected<InputNode>();
-            input_node->SetOperands({input_operand});
+            input_node->SetOperandDescriptors({input_operand->Descriptor()});
             input_operand_to_node.insert(input_operand, input_node);
 
             graph->inputs_.push_back(input_node);
@@ -55,7 +55,7 @@ Graph* Graph::BuildGraphFromML(
             const_node = const_operand_to_node.at(input_operand);
           } else {
             const_node = MakeGarbageCollected<ConstantNode>();
-            const_node->SetOperands({input_operand});
+            const_node->SetOperandDescriptors({input_operand->Descriptor()});
             const_operand_to_node.insert(input_operand, const_node);
           }
           Edge::Connect(const_node, 0, current_node, i);
