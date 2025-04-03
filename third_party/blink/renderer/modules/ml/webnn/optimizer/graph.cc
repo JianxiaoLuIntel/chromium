@@ -5,6 +5,7 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operator.h"
 #include "third_party/blink/renderer/modules/ml/webnn/optimizer/ml_operator_converter.h"
 
+namespace blink_mojom = webnn::mojom::blink;
 namespace blink::webnn_optimizer {
 
 // static
@@ -40,7 +41,8 @@ Graph* Graph::BuildGraphFromML(
             input_node = input_operand_to_node.at(input_operand);
           } else {
             input_node = MakeGarbageCollected<InputNode>();
-            input_node->SetOperandDescriptors({input_operand->Descriptor()});
+            input_node->SetOperandDescriptors(
+                {{input_operand->Name(), input_operand->Descriptor()}});
             input_operand_to_node.insert(input_operand, input_node);
 
             graph->inputs_.push_back(input_node);
@@ -55,7 +57,8 @@ Graph* Graph::BuildGraphFromML(
             const_node = const_operand_to_node.at(input_operand);
           } else {
             const_node = MakeGarbageCollected<ConstantNode>();
-            const_node->SetOperandDescriptors({input_operand->Descriptor()});
+            const_node->SetOperandDescriptors(
+                {{input_operand->Name(), input_operand->Descriptor()}});
             const_operand_to_node.insert(input_operand, const_node);
           }
           Edge::Connect(const_node, 0, current_node, i);
@@ -127,6 +130,116 @@ HeapVector<Node*> Graph::TopologicalSort() const {
     }
   }
   return sorted;
+}
+
+struct NodeOutputPort {
+  Node* node;
+  wtf_size_t index;
+};
+
+template <bool node_is_graph_output = false>
+inline void MojomOperandCreationHelper(
+    blink_mojom::GraphInfoPtr& graph_info,
+    std::map<const NodeOutputPort, uint64_t>& output_port_to_id_map,
+    uint64_t& id,
+    Node* node) {
+  webnn::mojom::Operand_Kind kind;
+
+  if constexpr (node_is_graph_output) {
+    kind = webnn::mojom::Operand_Kind::kOutput;
+  } else {
+    if (node->op_kind() == OpKind::kInput) {
+      kind = webnn::mojom::Operand_Kind::kInput;
+    } else if (node->op_kind() == OpKind::kConstant) {
+      kind = webnn::mojom::Operand_Kind::kConstant;
+    } else {
+      kind = webnn::mojom::Operand_Kind::kOutput;
+    }
+  }
+
+  for (wtf_size_t index = 0; index < node->GetOutputPorts().size(); ++index) {
+    auto [name, desc] = node->GetOperandNameAndDescriptors()[index];
+    auto operand = blink_mojom::Operand::New();
+    operand->kind = kind;
+    operand->descriptor = desc;
+    operand->name = name;
+    output_port_to_id_map[{node, index}] = ++id;
+    graph_info->id_to_operand_map.insert(id, std::move(operand));
+    if constexpr (node_is_graph_output) {
+      graph_info->output_operands.push_back(id);
+    } else {
+      if (kind == webnn::mojom::Operand_Kind::kInput) {
+        graph_info->input_operands.push_back(id);
+      } else if (kind == webnn::mojom::Operand_Kind::kConstant) {
+        auto constant_node = static_cast<ConstantNode*>(node);
+        // graph_info->constant_operand_ids_to_handles.insert(id, constant_node.handle()) );
+      }
+    }
+  }
+}
+
+// inline void MojomOperationCreationHelper(
+//     blink_mojom::GraphInfoPtr& graph_info,
+//     std::map<const blink_mojom::Operand*, uint64_t>& output_port_to_id_map,
+//     uint64_t& id,
+//     const Node* node) {
+//   switch (node->op_kind()) {
+//     case OpKind::kInput:
+//     case OpKind::kConstant:
+//       NOTREACHED() << "Input and Constant is not operator in mojom";
+
+//     case OpKind::kArgMinMax: {
+//       auto mojom_op = blink_mojom::ArgMinMax::New();
+//       auto argminmax_node = static_cast<const ArgMinMaxNode*>(node);
+//       mojom_op->kind = argminmax_node->kind;
+//       mojom_op->axis = argminmax_node->axis;
+//       mojom_op->keep_dimensions = argminmax_node->keep_dimensions;
+//       mojom_op->label = argminmax_node->GetLabel();
+
+//       // mojom_op->input_operand_id =
+//       // operand_to_id_map.at(argminmax_node->input());
+//       break;
+//     }
+
+//     default:
+//       NOTREACHED() << "Invalid OpKind";
+//   }
+// }
+
+webnn::mojom::blink::GraphInfoPtr Graph::ToMojom() const {
+  auto graph_info = blink_mojom::GraphInfo::New();
+  uint64_t id = 0;
+
+  std::map<const NodeOutputPort, uint64_t> output_port_to_id_map;
+  for (auto node : outputs_) {
+    MojomOperandCreationHelper<true>(graph_info, output_port_to_id_map, id,
+                                     node);
+  }
+
+  auto sorted = TopologicalSort();
+  for (wtf_size_t i = 0; sorted.size(); ++i) {
+    bool is_input_or_constant = true;
+    auto node = sorted[i];
+
+    MojomOperandCreationHelper(graph_info, output_port_to_id_map, id, node);
+
+    switch (node->op_kind()) {
+      case OpKind::kInput:
+      case OpKind::kConstant: {
+        MojomOperandCreationHelper(graph_info, output_port_to_id_map, id, node);
+        break;
+      }
+      default:
+        is_input_or_constant = false;
+        break;
+    }
+    if (is_input_or_constant) {
+      // Input and Constant is not operator in mojom
+      continue;
+    }
+  }
+
+  return graph_info;
 }
 
 }  // namespace blink::webnn_optimizer

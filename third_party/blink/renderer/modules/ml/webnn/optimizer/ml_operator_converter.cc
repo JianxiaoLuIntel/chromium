@@ -685,12 +685,13 @@ Node* ConvertMLOperatorToNode(const MLOperator* op) {
 
   CHECK(ret);
   ret->SetLabel(op->Options()->label());
-  Vector<::webnn::OperandDescriptor> operand_descs;
+  Vector<std::pair<String, ::webnn::OperandDescriptor>> operand_name_and_descs;
   for (auto operand : op->Outputs()) {
+    auto name = operand->Name();
     auto desc = operand->Descriptor();
-    operand_descs.push_back(desc);
+    operand_name_and_descs.push_back(std::pair{name, desc});
   }
-  ret->SetOperandDescriptors(operand_descs);
+  ret->SetOperandDescriptors(operand_name_and_descs);
   ret->SetMLOperatorOptions(Member(op->Options()));
 
   return ret;

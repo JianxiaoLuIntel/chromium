@@ -201,11 +201,14 @@ void OptionsResolveTransformer::ResolveConv2d(Conv2dNode* conv2d_nodes) {
   const auto* options = static_cast<const MLConv2dOptionsType*>(
       conv2d_nodes->GetMLOperatorOptions().Get());
   CHECK(options);
-  const auto conv2d_output_desc = conv2d_nodes->GetOperandDescriptors()[0];
-  const auto conv2d_input_desc =
-      conv2d_nodes->GetInputNodes()[0]->GetOperandDescriptors()[0];
-  const auto conv2d_filter_desc =
-      conv2d_nodes->GetInputNodes()[1]->GetOperandDescriptors()[0];
+  const auto conv2d_output_desc =
+      conv2d_nodes->GetOperandNameAndDescriptors()[0].second;
+  const auto conv2d_input_desc = conv2d_nodes->GetInputNodes()[0]
+                                     ->GetOperandNameAndDescriptors()[0]
+                                     .second;
+  const auto conv2d_filter_desc = conv2d_nodes->GetInputNodes()[1]
+                                      ->GetOperandNameAndDescriptors()[0]
+                                      .second;
 
   const std::optional<base::span<const uint32_t>> input_permutation =
       GetInputOperandPermutation(options->inputLayout().AsEnum(),
@@ -218,7 +221,7 @@ void OptionsResolveTransformer::ResolveConv2d(Conv2dNode* conv2d_nodes) {
         *context_properties, conv2d_input_desc.data_type(),
         PermuteShape(conv2d_input_desc.shape(), *input_permutation),
         conv2d_nodes->GetLabel().Utf8());
-    transpose->SetOperandDescriptors({transpose_output_desc.value()});
+    transpose->SetOperandDescriptors({{"", transpose_output_desc.value()}});
     auto origin_edge = conv2d_nodes->GetInputEdges()[0];
     auto* origin_from_node = origin_edge->FromNode();
     auto origin_from_idx = origin_edge->FromIndex();
@@ -233,15 +236,13 @@ void OptionsResolveTransformer::ResolveConv2d(Conv2dNode* conv2d_nodes) {
         PermuteShape(conv2d_output_desc.shape(), *input_permutation),
         conv2d_nodes->GetLabel().Utf8());
 
-    conv2d_nodes->SetOperandDescriptors({new_conv2d_output_desc.value()});
+    conv2d_nodes->SetOperandDescriptors({{"", new_conv2d_output_desc.value()}});
   }
 
   std::optional<std::array<uint32_t, 4>> filter_permutation;
   if constexpr (std::is_same<MLConv2dOptionsType, MLConv2dOptions>::value) {
-    bool depthwise = IsDepthwiseConv2d(
-        options,
-        conv2d_nodes->GetInputNodes()[0]->GetOperandDescriptors()[0].shape(),
-        conv2d_output_desc.shape());
+    bool depthwise = IsDepthwiseConv2d(options, conv2d_input_desc.shape(),
+                                       conv2d_output_desc.shape());
 
     filter_permutation =
         GetConv2DFilterPermutation(context_properties->input_operand_layout,
@@ -263,7 +264,7 @@ void OptionsResolveTransformer::ResolveConv2d(Conv2dNode* conv2d_nodes) {
         *context_properties, conv2d_filter_desc.data_type(),
         PermuteShape(conv2d_filter_desc.shape(), *filter_permutation),
         conv2d_nodes->GetLabel().Utf8());
-    transpose->SetOperandDescriptors({transpose_output_desc.value()});
+    transpose->SetOperandDescriptors({{"", transpose_output_desc.value()}});
 
     auto origin_edge = conv2d_nodes->GetInputEdges()[1];
     auto* origin_from_node = origin_edge->FromNode();
@@ -286,7 +287,7 @@ void OptionsResolveTransformer::ResolveConv2d(Conv2dNode* conv2d_nodes) {
         *context_properties, conv2d_output_desc.data_type(),
         PermuteShape(conv2d_output_desc.shape(), *output_permutation),
         conv2d_nodes->GetLabel().Utf8());
-    transpose->SetOperandDescriptors({transpose_output_desc.value()});
+    transpose->SetOperandDescriptors({{"", transpose_output_desc.value()}});
 
     auto outputs = conv2d_nodes->GetOutputPorts()[0];
 

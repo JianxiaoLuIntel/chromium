@@ -25,6 +25,8 @@ class Graph : public GarbageCollected<Graph> {
     return context_properties_;
   }
 
+  webnn::mojom::blink::GraphInfoPtr ToMojom() const;
+
  private:
   HeapVector<Member<Node>> inputs_;
   HeapVector<Member<Node>> outputs_;

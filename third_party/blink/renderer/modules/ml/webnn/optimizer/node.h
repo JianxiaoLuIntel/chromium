@@ -29,16 +29,20 @@ class Node : public GarbageCollected<Node> {
   }
 
   HeapVector<Member<Edge>>& GetInputEdges() { return inputs_; }
-  HeapVector<HeapVector<Member<Edge>>>& GetOutputPorts() { return output_ports_; }
+  HeapVector<HeapVector<Member<Edge>>>& GetOutputPorts() {
+    return output_ports_;
+  }
 
   void SetLabel(const String& label) { label_ = label; }
   String GetLabel() const { return label_; }
   void SetOperandDescriptors(
-      const Vector<webnn::OperandDescriptor>& descriptors) {
-    output_descriptors_ = descriptors;
+      const Vector<std::pair<String, webnn::OperandDescriptor>>&
+          name_and_descriptors) {
+    output_name_and_descriptors_ = name_and_descriptors;
   }
-  Vector<webnn::OperandDescriptor> GetOperandDescriptors() const {
-    return output_descriptors_;
+  Vector<std::pair<String, webnn::OperandDescriptor>>&
+  GetOperandNameAndDescriptors() {
+    return output_name_and_descriptors_;
   }
   void SetMLOperatorOptions(const Member<MLOperatorOptions>& options) {
     ml_operator_options_ = options;
@@ -57,7 +61,8 @@ class Node : public GarbageCollected<Node> {
 
   HeapVector<Member<Edge>> inputs_;
   HeapVector<HeapVector<Member<Edge>>> output_ports_;
-  Vector<webnn::OperandDescriptor> output_descriptors_;
+  Vector<std::pair<String, webnn::OperandDescriptor>>
+      output_name_and_descriptors_;
   Member<MLOperatorOptions> ml_operator_options_;
   String label_;
   int id_ = -1;
