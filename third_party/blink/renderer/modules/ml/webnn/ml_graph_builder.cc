@@ -63,6 +63,7 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_constant_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_error.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/pipeline.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_type_converter.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_utils.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
@@ -1631,7 +1632,9 @@ MLGraphBuilder::MLGraphBuilder(
     MLContext* context,
     mojo::PendingAssociatedRemote<blink_mojom::WebNNGraphBuilder>
         pending_remote)
-    : ml_context_(context), remote_(execution_context) {
+    : execution_context_(execution_context),
+      ml_context_(context),
+      remote_(execution_context) {
   CHECK(base::FeatureList::IsEnabled(
       webnn::mojom::features::kWebMachineLearningNeuralNetwork));
 
@@ -1644,10 +1647,15 @@ MLGraphBuilder::MLGraphBuilder(
 MLGraphBuilder::~MLGraphBuilder() = default;
 
 void MLGraphBuilder::Trace(Visitor* visitor) const {
+  visitor->Trace(execution_context_);
   visitor->Trace(ml_context_);
   visitor->Trace(remote_);
   visitor->Trace(pending_resolver_);
   ScriptWrappable::Trace(visitor);
+}
+
+ExecutionContext* MLGraphBuilder::GetExecutionContext() const {
+  return execution_context_.Get();
 }
 
 MLContext* MLGraphBuilder::GetContext() const {
@@ -3318,6 +3326,10 @@ ScriptPromise<MLGraph> MLGraphBuilder::build(
     exception_state.ThrowTypeError(graph_constraints.error());
     return EmptyPromise();
   }
+
+  scoped_trace.AddStep("MLGraphTransformPipeline");
+  auto* pipeline = MakeGarbageCollected<MLGraphTransformPipeline>(this);
+  pipeline->Run(named_outputs);
 
   scoped_trace.AddStep("BuildWebNNGraphInfo");
   auto graph_info =

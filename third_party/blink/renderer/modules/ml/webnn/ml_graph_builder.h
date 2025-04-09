@@ -83,6 +83,8 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
 
   void Trace(Visitor* visitor) const override;
 
+  ExecutionContext* GetExecutionContext() const;
+
   MLContext* GetContext() const;
 
   struct Size2D {
@@ -535,6 +537,8 @@ class MODULES_EXPORT MLGraphBuilder final : public ScriptWrappable {
   // Convenience method to validate several inputs at once.
   [[nodiscard]] base::expected<void, String> ValidateInputs(
       const HeapVector<Member<MLOperand>>& inputs);
+
+  Member<ExecutionContext> execution_context_;
 
   Member<MLContext> ml_context_;
 

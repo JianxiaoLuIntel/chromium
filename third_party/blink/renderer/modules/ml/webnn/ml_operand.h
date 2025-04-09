@@ -105,6 +105,7 @@ class MODULES_EXPORT MLOperand : public ScriptWrappable {
 
   // Operators that use this operand as an input.
   HeapHashSet<Member<const MLOperator>> dependent_operators_;
+  friend class MLGraphTransformer;
 };
 
 }  // namespace blink
