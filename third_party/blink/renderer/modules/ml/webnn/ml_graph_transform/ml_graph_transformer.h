@@ -36,7 +36,7 @@ class MLGraphTransformer : public GarbageCollected<MLGraphTransformer> {
   void Trace(Visitor* visitor) const;
 
   // Apply the transformation to the given graph.
-  virtual void Transform(const MLNamedOperands& named_outputs) = 0;
+  virtual void Transform(MLNamedOperands& named_outputs) = 0;
 
   const ExceptionState GetExceptionState();
 

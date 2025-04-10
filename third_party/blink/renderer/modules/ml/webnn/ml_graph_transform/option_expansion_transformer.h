@@ -10,11 +10,11 @@ class OptionExpansionTransformer : public MLGraphTransformer {
   explicit OptionExpansionTransformer(MLGraphBuilder* graph_builder)
       : MLGraphTransformer(graph_builder) {}
 
-  void Transform(const MLNamedOperands& named_outputs) override;
+  void Transform(MLNamedOperands& named_outputs) override;
 
  private:
   template <typename MLConv2dOptionsType>
-  void HandleConv2d(MLOperator* conv2d);
+  MLOperand* HandleConv2d(MLOperator* conv2d);
 };
 
 }  // namespace blink

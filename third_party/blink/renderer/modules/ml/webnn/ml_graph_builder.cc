@@ -3329,11 +3329,12 @@ ScriptPromise<MLGraph> MLGraphBuilder::build(
 
   scoped_trace.AddStep("MLGraphTransformPipeline");
   auto* pipeline = MakeGarbageCollected<MLGraphTransformPipeline>(this);
-  pipeline->Run(named_outputs);
+  MLNamedOperands mutable_named_outputs(named_outputs);
+  pipeline->Run(mutable_named_outputs);
 
   scoped_trace.AddStep("BuildWebNNGraphInfo");
   auto graph_info =
-      BuildWebNNGraphInfo(named_outputs, ml_context_->GetProperties());
+      BuildWebNNGraphInfo(mutable_named_outputs, ml_context_->GetProperties());
   if (!graph_info.has_value()) {
     // TODO(crbug.com/345271830): Move the platform-specific checks into the
     // respective synchronous operator builder methods, such that

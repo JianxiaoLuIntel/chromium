@@ -13,7 +13,7 @@ void MLGraphTransformer::Disconnect(MLOperator* from,
   MLOperand* operand = from->outputs_[from_index];
   auto dependent_operators = operand->DependentOperators();
 
-  DCHECK(!dependent_operators.Contains(to));
+  DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
 
   DCHECK(to->inputs_[to_index] == operand);
@@ -27,7 +27,7 @@ int MLGraphTransformer::Disconnect(MLOperator* from,
   MLOperand* operand = from->outputs_[from_index];
   auto dependent_operators = operand->DependentOperators();
 
-  DCHECK(!dependent_operators.Contains(to));
+  DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
 
   wtf_size_t to_index = to->inputs_.Find(operand);
@@ -42,7 +42,7 @@ void MLGraphTransformer::Disconnect(MLOperand* from,
                                     int to_index) {
   auto dependent_operators = from->DependentOperators();
 
-  DCHECK(!dependent_operators.Contains(to));
+  DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
 
   DCHECK(to->inputs_[to_index] == from);
@@ -76,15 +76,14 @@ MLOperand* MLGraphTransformer::CloneResetShape(const MLOperand* operand,
                                                const Vector<uint32_t>& shape) {
   auto descriptor = webnn::OperandDescriptor::Create(
       operand->Builder()->GetContext()->GetProperties(), operand->DataType(),
-      shape, operand->Name().Utf8());
+      shape, "");
 
   MLOperand* clone = MakeGarbageCollected<MLOperand>(
       operand->Builder(), operand->Kind(), descriptor.value());
 
-  clone->name_ = operand->Name();
   clone->operator_ = operand->Operator();
   clone->dependent_operators_ = operand->DependentOperators();
-  return nullptr;
+  return clone;
 }
 
 // static

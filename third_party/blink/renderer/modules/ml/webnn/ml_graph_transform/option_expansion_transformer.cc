@@ -189,20 +189,28 @@ Vector<uint32_t> PermuteShape(base::span<const uint32_t> shape,
 }
 }  // namespace
 
-void OptionExpansionTransformer::Transform(
-    const MLNamedOperands& named_outputs) {
+void OptionExpansionTransformer::Transform(MLNamedOperands& named_outputs) {
   auto* sorted_operators = GetOperatorsInTopologicalOrder(named_outputs);
 
+  HeapHashSet<Member<const MLOperator>> graph_output_operators;
+  for (auto& named_output : named_outputs) {
+    auto* output_operand = named_output.second.Get();
+    graph_output_operators.insert(output_operand->Operator());
+  }
+
   for (auto& op : *sorted_operators) {
+    MLOperand* original_operand = op->Outputs()[0].Get();
+    MLOperand* updated_operand = nullptr;
     switch (op->Kind()) {
       case webnn::mojom::internal::Operation_Data::Operation_Tag::kConv2d: {
         switch (op->SubKind<blink_mojom::Conv2d::Kind>()) {
           case blink_mojom::Conv2d::Kind::kDirect: {
-            HandleConv2d<MLConv2dOptions>(const_cast<MLOperator*>(op.Get()));
+            updated_operand = HandleConv2d<MLConv2dOptions>(
+                const_cast<MLOperator*>(op.Get()));
             break;
           }
           case blink_mojom::Conv2d::Kind::kTransposed: {
-            HandleConv2d<MLConvTranspose2dOptions>(
+            updated_operand = HandleConv2d<MLConvTranspose2dOptions>(
                 const_cast<MLOperator*>(op.Get()));
             break;
           }
@@ -213,11 +221,21 @@ void OptionExpansionTransformer::Transform(
       default:
         break;
     }
+
+    // The handled operator is a graph output, update named_outputs.
+    if (updated_operand != original_operand &&
+        graph_output_operators.Contains(op)) {
+      for (auto& named_output : named_outputs) {
+        if (named_output.second.Get() == original_operand) {
+          named_output.second = updated_operand;
+        }
+      }
+    }
   }
 }
 
 template <typename MLConv2dOptionsType>
-void OptionExpansionTransformer::HandleConv2d(MLOperator* conv2d) {
+MLOperand* OptionExpansionTransformer::HandleConv2d(MLOperator* conv2d) {
   const auto* options =
       static_cast<const MLConv2dOptionsType*>(conv2d->Options());
   CHECK(options);
@@ -285,6 +303,7 @@ void OptionExpansionTransformer::HandleConv2d(MLOperator* conv2d) {
                                   context_properties);
 
   // Insert output transpose if needed.
+  auto* conv2d_output_operand = conv2d->Outputs()[0].Get();
   if (output_permutation) {
     HeapVector<std::pair<MLOperator*, int>> conv_output_ops_to_update;
     auto conv_output_ops = conv2d->Outputs()[0]->DependentOperators();
@@ -305,13 +324,15 @@ void OptionExpansionTransformer::HandleConv2d(MLOperator* conv2d) {
     for (auto& [output_op, index] : conv_output_ops_to_update) {
       Connect(transpose_operand, output_op, index);
     }
+    conv2d_output_operand = transpose_operand;
   }
+  return conv2d_output_operand;
 }
 
-template void OptionExpansionTransformer::HandleConv2d<MLConv2dOptions>(
+template MLOperand* OptionExpansionTransformer::HandleConv2d<MLConv2dOptions>(
     MLOperator* conv2d);
 
-template void OptionExpansionTransformer::HandleConv2d<
+template MLOperand* OptionExpansionTransformer::HandleConv2d<
     MLConvTranspose2dOptions>(MLOperator* conv2d);
 
 }  // namespace blink

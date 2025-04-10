@@ -17,7 +17,7 @@ void MLGraphTransformPipeline::InitTransformers(MLGraphBuilder* graph_builder) {
       MakeGarbageCollected<OptionExpansionTransformer>(graph_builder));
 }
 
-void MLGraphTransformPipeline::Run(const MLNamedOperands& named_outputs) {
+void MLGraphTransformPipeline::Run(MLNamedOperands& named_outputs) {
   for (auto& transformer : transformers_) {
     transformer->Transform(named_outputs);
   }
