@@ -241,12 +241,27 @@ MLOperand* OptionExpansionTransformer::HandleConv2d(MLOperator* conv2d) {
   CHECK(options);
 
   auto context_properties = graph_builder_->GetContext()->GetProperties();
+  auto exception_state = GetExceptionState();
 
+  // Compute input potential permutation.
   const std::optional<base::span<const uint32_t>> input_permutation =
       GetInputOperandPermutation(options->inputLayout().AsEnum(),
                                  context_properties);
+  // Compute filter potential permutation.
+  std::optional<std::array<uint32_t, 4>> filter_permutation;
+  if constexpr (std::is_same<MLConv2dOptionsType, MLConv2dOptions>::value) {
+    bool depthwise = IsDepthwiseConv2d(conv2d);
+    filter_permutation =
+        GetConv2DFilterPermutation(context_properties.input_operand_layout,
+                                   depthwise, options->filterLayout());
 
-  auto exception_state = GetExceptionState();
+  } else if constexpr (std::is_same<MLConv2dOptionsType,
+                                    MLConvTranspose2dOptions>::value) {
+    filter_permutation = GetConvTranspose2DFilterPermutation(
+        context_properties.input_operand_layout, options->filterLayout());
+  } else {
+    NOTREACHED();
+  }
 
   // Insert input transpose if needed.
   if (input_permutation) {
@@ -270,20 +285,6 @@ MLOperand* OptionExpansionTransformer::HandleConv2d(MLOperator* conv2d) {
     ReplaceOperand(output_operand, new_output_operand);
   }
 
-  std::optional<std::array<uint32_t, 4>> filter_permutation;
-  if constexpr (std::is_same<MLConv2dOptionsType, MLConv2dOptions>::value) {
-    bool depthwise = IsDepthwiseConv2d(conv2d);
-    filter_permutation =
-        GetConv2DFilterPermutation(context_properties.input_operand_layout,
-                                   depthwise, options->filterLayout());
-
-  } else if constexpr (std::is_same<MLConv2dOptionsType,
-                                    MLConvTranspose2dOptions>::value) {
-    filter_permutation = GetConvTranspose2DFilterPermutation(
-        context_properties.input_operand_layout, options->filterLayout());
-  } else {
-    NOTREACHED();
-  }
   // Insert filter transpose if needed.
   if (filter_permutation) {
     auto* filter_operand = conv2d->Inputs()[1].Get();
