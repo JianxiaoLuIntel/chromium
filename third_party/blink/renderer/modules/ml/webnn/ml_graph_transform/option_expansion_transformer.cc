@@ -200,7 +200,7 @@ void OptionExpansionTransformer::Transform(MLNamedOperands& named_outputs) {
 
   for (auto& op : *sorted_operators) {
     MLOperand* original_operand = op->Outputs()[0].Get();
-    MLOperand* updated_operand = nullptr;
+    MLOperand* updated_operand = original_operand;
     switch (op->Kind()) {
       case webnn::mojom::internal::Operation_Data::Operation_Tag::kConv2d: {
         switch (op->SubKind<blink_mojom::Conv2d::Kind>()) {
