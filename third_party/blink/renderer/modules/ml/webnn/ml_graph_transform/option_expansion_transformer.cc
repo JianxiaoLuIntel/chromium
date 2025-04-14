@@ -4,6 +4,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_conv_transpose_2d_options.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_ml_transpose_options.h"
 #include "third_party/blink/renderer/modules/ml/ml_context.h"
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/ml_graph_printer.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_utils.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_operand.h"
 
@@ -190,6 +191,9 @@ Vector<uint32_t> PermuteShape(base::span<const uint32_t> shape,
 }  // namespace
 
 void OptionExpansionTransformer::Transform(MLNamedOperands& named_outputs) {
+  printf("before OptionExpansionTransformer:\n");
+  Print(named_outputs);
+
   auto* sorted_operators = GetOperatorsInTopologicalOrder(named_outputs);
 
   HeapHashSet<Member<const MLOperator>> graph_output_operators;
@@ -232,6 +236,9 @@ void OptionExpansionTransformer::Transform(MLNamedOperands& named_outputs) {
       }
     }
   }
+
+  printf("after OptionExpansionTransformer:\n");
+  Print(named_outputs);
 }
 
 template <typename MLConv2dOptionsType>

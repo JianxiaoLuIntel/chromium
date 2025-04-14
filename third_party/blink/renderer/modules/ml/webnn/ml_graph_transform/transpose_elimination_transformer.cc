@@ -53,11 +53,18 @@ MLOperand* TransposeEliminationTransformer::HandleTranspose(
     MLOperator* transpose) {
   auto* sub_graph_output_operand = transpose->Outputs()[0].Get();
   auto* input_operand = transpose->Inputs()[0].Get();
-  if (input_operand->DependentOperators().size() != 1) {
+
+  auto dep_op_size = input_operand->DependentOperators().size();
+  // todo, this is not necessary
+  if (dep_op_size != 1) {
     return sub_graph_output_operand;
   }
 
   DCHECK(input_operand->DependentOperators().Contains(transpose));
+
+  if (input_operand->Kind() != webnn::mojom::blink::Operand::Kind::kOutput) {
+    return sub_graph_output_operand;
+  }
 
   auto* front_transpose = const_cast<MLOperator*>(input_operand->Operator());
 

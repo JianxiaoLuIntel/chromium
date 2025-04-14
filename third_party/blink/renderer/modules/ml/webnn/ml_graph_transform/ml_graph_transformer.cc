@@ -11,7 +11,7 @@ void MLGraphTransformer::Disconnect(MLOperator* from,
                                     MLOperator* to,
                                     int to_index) {
   MLOperand* operand = from->outputs_[from_index];
-  auto dependent_operators = operand->DependentOperators();
+  auto& dependent_operators = operand->dependent_operators_;
 
   DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
@@ -25,7 +25,7 @@ int MLGraphTransformer::Disconnect(MLOperator* from,
                                    int from_index,
                                    MLOperator* to) {
   MLOperand* operand = from->outputs_[from_index];
-  auto dependent_operators = operand->DependentOperators();
+  auto& dependent_operators = operand->dependent_operators_;
 
   DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
@@ -38,7 +38,7 @@ int MLGraphTransformer::Disconnect(MLOperator* from,
 
 // static
 int MLGraphTransformer::Disconnect(MLOperand* from, MLOperator* to) {
-  auto dependent_operators = from->DependentOperators();
+  auto& dependent_operators = from->dependent_operators_;
 
   DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
@@ -53,7 +53,7 @@ int MLGraphTransformer::Disconnect(MLOperand* from, MLOperator* to) {
 void MLGraphTransformer::Disconnect(MLOperand* from,
                                     MLOperator* to,
                                     int to_index) {
-  auto dependent_operators = from->DependentOperators();
+  auto& dependent_operators = from->dependent_operators_;
 
   DCHECK(dependent_operators.Contains(to));
   dependent_operators.erase(to);
@@ -95,7 +95,7 @@ MLOperand* MLGraphTransformer::CloneResetShape(const MLOperand* operand,
       operand->Builder(), operand->Kind(), descriptor.value());
 
   clone->operator_ = operand->Operator();
-  clone->dependent_operators_ = operand->DependentOperators();
+  clone->dependent_operators_ = operand->dependent_operators_;
   return clone;
 }
 
@@ -109,7 +109,7 @@ void MLGraphTransformer::ReplaceOperand(MLOperand* old_operand,
     }
   }
 
-  auto deps = old_operand->DependentOperators();
+  auto& deps = old_operand->dependent_operators_;
   for (auto& dep : deps) {
     auto* dep_op = const_cast<MLOperator*>(dep.Get());
     for (auto& input : dep_op->inputs_) {
