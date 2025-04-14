@@ -19,6 +19,8 @@ class MLGraphTransformer : public GarbageCollected<MLGraphTransformer> {
 
   static int Disconnect(MLOperator* from, int from_index, MLOperator* to);
 
+  static int Disconnect(MLOperand* from, MLOperator* to);
+
   static void Disconnect(MLOperand* from, MLOperator* to, int to_index);
 
   static void Connect(MLOperand* from, MLOperator* to, int to_index);

@@ -37,6 +37,19 @@ int MLGraphTransformer::Disconnect(MLOperator* from,
 }
 
 // static
+int MLGraphTransformer::Disconnect(MLOperand* from, MLOperator* to) {
+  auto dependent_operators = from->DependentOperators();
+
+  DCHECK(dependent_operators.Contains(to));
+  dependent_operators.erase(to);
+
+  wtf_size_t to_index = to->inputs_.Find(from);
+  DCHECK(to_index != kNotFound);
+  to->inputs_[to_index] = nullptr;
+  return static_cast<int>(to_index);
+}
+
+// static
 void MLGraphTransformer::Disconnect(MLOperand* from,
                                     MLOperator* to,
                                     int to_index) {
