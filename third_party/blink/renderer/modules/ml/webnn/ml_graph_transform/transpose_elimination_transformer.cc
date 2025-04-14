@@ -51,8 +51,8 @@ void TransposeEliminationTransformer::Transform(
 
 MLOperand* TransposeEliminationTransformer::HandleTranspose(
     MLOperator* transpose) {
-  auto sub_graph_output_operand = transpose->Outputs()[0].Get();
-  auto input_operand = transpose->Inputs()[0].Get();
+  auto* sub_graph_output_operand = transpose->Outputs()[0].Get();
+  auto* input_operand = transpose->Inputs()[0].Get();
   if (input_operand->DependentOperators().size() != 1) {
     return sub_graph_output_operand;
   }
@@ -66,8 +66,8 @@ MLOperand* TransposeEliminationTransformer::HandleTranspose(
     return sub_graph_output_operand;
   }
 
-  auto options = static_cast<const MLTransposeOptions*>(transpose->Options());
-  auto front_options =
+  auto* options = static_cast<const MLTransposeOptions*>(transpose->Options());
+  auto* front_options =
       static_cast<const MLTransposeOptions*>(front_transpose->Options());
 
   wtf_size_t rank = input_operand->Rank();
@@ -80,7 +80,7 @@ MLOperand* TransposeEliminationTransformer::HandleTranspose(
     return sub_graph_output_operand;
   }
 
-  auto sub_graph_input_operand = front_transpose->Inputs()[0].Get();
+  auto* sub_graph_input_operand = front_transpose->Inputs()[0].Get();
 
   Disconnect(sub_graph_input_operand, front_transpose, 0);
 
@@ -102,6 +102,7 @@ MLOperand* TransposeEliminationTransformer::HandleTranspose(
 
   removed_operators_.insert(transpose);
   removed_operators_.insert(front_transpose);
+  printf("Successfully eliminate transpose operator\n");
   return sub_graph_input_operand;
 }
 

@@ -35,7 +35,7 @@ class MLGraphTransformer : public GarbageCollected<MLGraphTransformer> {
 
   static void ReplaceOperand(MLOperand* old_operand, MLOperand* new_operand);
 
-  void Trace(Visitor* visitor) const;
+  virtual void Trace(Visitor* visitor) const;
 
   // Apply the transformation to the given graph.
   virtual void Transform(MLNamedOperands& named_outputs) = 0;

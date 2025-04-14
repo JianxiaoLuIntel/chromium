@@ -11,14 +11,14 @@ class TransposeEliminationTransformer : public MLGraphTransformer {
   explicit TransposeEliminationTransformer(MLGraphBuilder* graph_builder)
       : MLGraphTransformer(graph_builder) {}
 
-  void Trace(Visitor* visitor) const;
+  void Trace(Visitor* visitor) const override;
 
   void Transform(MLNamedOperands& named_outputs) override;
 
  private:
   MLOperand* HandleTranspose(MLOperator* transpose);
 
-  HeapHashSet<Member<MLOperator>> removed_operators_;
+  HeapHashSet<Member<const MLOperator>> removed_operators_;
 };
 
 }  // namespace blink

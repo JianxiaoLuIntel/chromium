@@ -30,3 +30,9 @@ feature kWebNNDirectML {
   const string name = "WebNNDirectML";
   const bool default_state = true;
 };
+
+// For debug
+feature kWebNNTransposeElimination {
+  const string name = "WebNNTransposeElimination";
+  const bool default_state = false;
+};
