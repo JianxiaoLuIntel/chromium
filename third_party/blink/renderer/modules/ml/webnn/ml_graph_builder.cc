@@ -63,6 +63,7 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_constant_operand.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_error.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph.h"
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/ml_graph_printer.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/pipeline.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_type_converter.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_utils.h"
@@ -3331,6 +3332,9 @@ ScriptPromise<MLGraph> MLGraphBuilder::build(
   auto* pipeline = MakeGarbageCollected<MLGraphTransformPipeline>(this);
   MLNamedOperands mutable_named_outputs(named_outputs);
   pipeline->Run(mutable_named_outputs);
+
+  // Print the graph after all transformations.
+  Print(mutable_named_outputs);
 
   scoped_trace.AddStep("BuildWebNNGraphInfo");
   auto graph_info =

@@ -1,6 +1,7 @@
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/pipeline.h"
 
 #include "services/webnn/public/mojom/features.mojom-features.h"
+#include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/ml_graph_printer.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/option_expansion_transformer.h"
 #include "third_party/blink/renderer/modules/ml/webnn/ml_graph_transform/transpose_elimination_transformer.h"
 

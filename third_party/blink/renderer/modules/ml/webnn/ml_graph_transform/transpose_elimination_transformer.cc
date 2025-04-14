@@ -54,9 +54,7 @@ MLOperand* TransposeEliminationTransformer::HandleTranspose(
   auto* sub_graph_output_operand = transpose->Outputs()[0].Get();
   auto* input_operand = transpose->Inputs()[0].Get();
 
-  auto dep_op_size = input_operand->DependentOperators().size();
-  // todo, this is not necessary
-  if (dep_op_size != 1) {
+  if (input_operand->DependentOperators().size() != 1) {
     return sub_graph_output_operand;
   }
 
