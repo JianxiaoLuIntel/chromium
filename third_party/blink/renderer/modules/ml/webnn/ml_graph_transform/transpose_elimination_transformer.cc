@@ -49,25 +49,82 @@ void TransposeEliminationTransformer::Transform(
   removed_operators_.clear();
 }
 
+bool IsLayoutAgnosticNode(MLOperator* node) {
+  switch (node->Kind()) {
+    case webnn::mojom::internal::Operation_Data::Operation_Tag::kClamp:
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Skip la_nodes(layout agnostic nodes) and find the front transpose
+// For example
+// node0 -> transpose0 -> clamp0 -> clamp1 -> transpose1 -> node1
+// Can be eliminated to:
+// node0 -> clamp0 -> clamp1 -> node1
+void TryFindEliminatableFrontTranspose(MLOperator* transpose,
+                                       MLOperator*& front_transpose,
+                                       MLOperator*& la_node_front,
+                                       MLOperator*& la_node_back) {
+  DCHECK_EQ(front_transpose, nullptr);
+  DCHECK_EQ(la_node_front, nullptr);
+  DCHECK_EQ(la_node_back, nullptr);
+
+  if (transpose->Inputs()[0]->Kind() != webnn::mojom::Operand_Kind::kOutput) {
+    return;
+  }
+
+  MLOperator* cur_node =
+      const_cast<MLOperator*>(transpose->Inputs()[0].Get()->Operator());
+
+  while (true) {
+    if (cur_node->Outputs().size() != 1 || cur_node->Inputs().size() != 1 ||
+        cur_node->Outputs()[0]->DependentOperators().size() != 1) {
+      break;
+    }
+
+    if (cur_node->Kind() ==
+        webnn::mojom::internal::Operation_Data::Operation_Tag::kTranspose) {
+      front_transpose = (cur_node);
+      break;
+    }
+
+    if (IsLayoutAgnosticNode(cur_node)) {
+      if (la_node_back == nullptr) {
+        DCHECK_EQ(la_node_front, nullptr);
+        la_node_back = cur_node;
+        la_node_front = cur_node;
+      } else {
+        la_node_front = cur_node;
+      }
+
+      if (cur_node->Inputs()[0]->Kind() !=
+          webnn::mojom::Operand_Kind::kOutput) {
+        break;
+      }
+
+      cur_node =
+          const_cast<MLOperator*>(cur_node->Inputs()[0].Get()->Operator());
+      continue;
+    }
+    break;
+  }
+}
+
 MLOperand* TransposeEliminationTransformer::HandleTranspose(
     MLOperator* transpose) {
   auto* sub_graph_output_operand = transpose->Outputs()[0].Get();
   auto* input_operand = transpose->Inputs()[0].Get();
 
-  if (input_operand->DependentOperators().size() != 1) {
-    return sub_graph_output_operand;
-  }
+  MLOperator* front_transpose = nullptr;
+  MLOperator* la_node_front = nullptr;
+  MLOperator* la_node_back = nullptr;
 
-  DCHECK(input_operand->DependentOperators().Contains(transpose));
+  TryFindEliminatableFrontTranspose(transpose, front_transpose, la_node_front,
+                                    la_node_back);
 
-  if (input_operand->Kind() != webnn::mojom::blink::Operand::Kind::kOutput) {
-    return sub_graph_output_operand;
-  }
-
-  auto* front_transpose = const_cast<MLOperator*>(input_operand->Operator());
-
-  if (front_transpose->Kind() !=
-      webnn::mojom::internal::Operation_Data::Operation_Tag::kTranspose) {
+  if (front_transpose == nullptr) {
     return sub_graph_output_operand;
   }
 
@@ -101,8 +158,39 @@ MLOperand* TransposeEliminationTransformer::HandleTranspose(
         std::pair{output_op, disconnect_index});
   }
 
-  for (auto& [op, index] : sub_graph_output_operators_to_update) {
-    Connect(sub_graph_input_operand, op, index);
+  if (la_node_back == nullptr) {
+    DCHECK_EQ(la_node_front, nullptr);
+    for (auto& [op, index] : sub_graph_output_operators_to_update) {
+      Connect(sub_graph_input_operand, op, index);
+    }
+  } else {
+    DCHECK_NE(la_node_front, nullptr);
+    Disconnect(front_transpose, 0, la_node_front, 0);
+    Disconnect(la_node_back, 0, transpose, 0);
+
+    Connect(sub_graph_input_operand, la_node_front, 0);
+
+    for (auto& [op, index] : sub_graph_output_operators_to_update) {
+      Connect(la_node_back, 0, op, index);
+    }
+
+    // update la_nodes operand descriptors (shape)
+    auto std_shape = la_node_front->Inputs()[0]->Shape();
+    Vector<uint32_t> shape(std_shape.size());
+    for (size_t i = 0; i < std_shape.size(); ++i) {
+      shape[i] = std_shape[i];
+    }
+
+    for (MLOperator* cur_node = la_node_back;;
+         cur_node =
+             const_cast<MLOperator*>(cur_node->Inputs()[0].Get()->Operator())) {
+      auto* new_operand = CloneResetShape(cur_node->Outputs()[0], shape);
+      ReplaceOperand(cur_node->Outputs()[0], new_operand);
+
+      if (cur_node == la_node_front) {
+        break;
+      }
+    }
   }
 
   removed_operators_.insert(transpose);
